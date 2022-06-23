@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+    environment {
+        DONT_COLLECT = 'FOO'
+    }
+
+    stages {
+        stage ('Clone') {
+            steps {
+                git branch: 'master', url: "https://github.com/kishancs2020/SpringBootRestApp.git"
+            }
+        }
+        stage ('Exec Gradle') {
+           steps {
+             rtGradleRun (
+             tasks: 'clean build sonarqube',
+             tool: 'Gradle_Home', // Tool name from Jenkins configuration
+             rootDir: "C:\\Users\\RJ535FW\\OneDrive - EY\\Desktop\\SpringBootRestApp",
+             buildFile: 'build.gradle',
+             )
+            }
+        }
+        
+        stage ('Artifactory configuration') {
+            steps {
+                rtServer (
+                    id: "ARTIFACTORY_SERVER",
+                    url: "http://localhost:8082/artifactory/",     //Jfrog URL: 
+                    credentialsId: "9426f8c2-02ee-4e32-a000-e12a56a3a140"  // JFrog Cred
+                )
+                rtGradleDeployer (
+                    id: "ARTIFACTORY_SERVER",
+                    serverId: "ARTIFACTORY_SERVER", // reference added in global variables
+                    releaseRepo: 'libs-release',
+                    snapshotRepo: 'libs-snapshot',
+                    repo: "example-repo-local/",
+                    excludePatterns: ["*.war"],
+                )
+                rtGradleResolver (
+                    id: "ARTIFACTORY_SERVER",
+                    serverId: "ARTIFACTORY_SERVER", // reference added in global variables
+                    repo: "example-repo-local/"
+
+            
+                )
+            }
+        }
+    }    
+}
